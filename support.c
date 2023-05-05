@@ -252,103 +252,94 @@ void nRF24_CSN_H() {
 void RX_single(void)
 
 {
-	// This is simple receiver with one RX pipe:
-		//   - pipe#1 address: '0xE7 0x1C 0xE3'
-		//   - payload: 5 bytes
-		//   - RF channel: 115 (2515MHz)
-		//   - data rate: 250kbps (minimum possible, to increase reception reliability)
-		//   - CRC scheme: 2 byte
+  // This is simple receiver with one RX pipe:
+  //   - pipe#1 address: '0xE7 0x1C 0xE3'
+  //   - payload: 5 bytes
+  //   - RF channel: 115 (2515MHz)
+  //   - data rate: 250kbps (minimum possible, to increase reception
+  //   reliability)
+  //   - CRC scheme: 2 byte
 
-	    // The transmitter sends a 5-byte packets to the address '0xE7 0x1C 0xE3' without Auto-ACK (ShockBurst disabled)
+  // The transmitter sends a 5-byte packets to the address '0xE7 0x1C 0xE3'
+  // without Auto-ACK (ShockBurst disabled)
 
-	    // Disable ShockBurst for all RX pipes
-	    nRF24_DisableAA(0xFF);
+  // Disable ShockBurst for all RX pipes
+  nRF24_DisableAA(0xFF);
 
-	    // Set RF channel
-	    nRF24_SetRFChannel(95);
+  // Set RF channel
+  nRF24_SetRFChannel(95);
 
-	    // Set data rate
-	    nRF24_SetDataRate(nRF24_DR_250kbps);
+  // Set data rate
+  nRF24_SetDataRate(nRF24_DR_250kbps);
 
-	    // Set CRC scheme
-	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
+  // Set CRC scheme
+  nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
-	    // Set address width, its common for all pipes (RX and TX)
-	    nRF24_SetAddrWidth(3);
+  // Set address width, its common for all pipes (RX and TX)
+  nRF24_SetAddrWidth(3);
 
-	    // Configure RX PIPE#1
-	    static const uint8_t nRF24_ADDR[] = { 0xE5, 0x1C, 0xE5 };
-	    nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for RX pipe #1
-	    nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
+  // Configure RX PIPE#1
+  static const uint8_t nRF24_ADDR[] = {0xE5, 0x1C, 0xE5};
+  nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for RX pipe #1
+  nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
 
-	    static const uint8_t nRF24_ADDR_2[] = {0xE6};
-	    nRF24_SetAddr(nRF24_PIPE2, nRF24_ADDR_2); // program address for RX pipe #2
-	    nRF24_SetRXPipe(nRF24_PIPE2, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
+  static const uint8_t nRF24_ADDR_2[] = {0xE6};
+  nRF24_SetAddr(nRF24_PIPE2, nRF24_ADDR_2); // program address for RX pipe #2
+  nRF24_SetRXPipe(nRF24_PIPE2, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
 
-	    static const uint8_t nRF24_ADDR_3[] = { 0xE7};
-	    nRF24_SetAddr(nRF24_PIPE3, nRF24_ADDR_3); // program address for RX pipe #3
-	    nRF24_SetRXPipe(nRF24_PIPE3, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
+  static const uint8_t nRF24_ADDR_3[] = {0xE7};
+  nRF24_SetAddr(nRF24_PIPE3, nRF24_ADDR_3); // program address for RX pipe #3
+  nRF24_SetRXPipe(nRF24_PIPE3, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
 
-	    static const uint8_t nRF24_ADDR_4[] = { 0xE8};
-	    nRF24_SetAddr(nRF24_PIPE4, nRF24_ADDR_4); // program address for RX pipe #4
-	    nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
+  static const uint8_t nRF24_ADDR_4[] = {0xE8};
+  nRF24_SetAddr(nRF24_PIPE4, nRF24_ADDR_4); // program address for RX pipe #4
+  nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, payload_length); // Auto-ACK: disabled, payload length: 5 bytes
 
-	    // Set operational mode (PRX == receiver)
-	    nRF24_SetOperationalMode(nRF24_MODE_RX);
+  // Set operational mode (PRX == receiver)
+  nRF24_SetOperationalMode(nRF24_MODE_RX);
 
-	    // Wake the transceiver
-	    nRF24_SetPowerMode(nRF24_PWR_UP);
+  // Wake the transceiver
+  nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	    // Put the transceiver to the RX mode
-	    nRF24_CE_H();
+  // Put the transceiver to the RX mode
+  nRF24_CE_H();
 
+  UART_SendStr("STARTAS");
+  nRF24_ClearIRQFlags();
 
-	    UART_SendStr("STARTAS");
-	    nRF24_ClearIRQFlags();
+  // The main loop
+  while (1) {
+    //
+    // Constantly poll the status of the RX FIFO and get a payload if FIFO is
+    // not empty
+    //
+    // This is far from best solution, but it's ok for testing purposes
+    // More smart way is to use the IRQ pin :)
+    //
 
-	    // The main loop
-	    while (1)
-	    {
-	    	//
-	    	// Constantly poll the status of the RX FIFO and get a payload if FIFO is not empty
-	    	//
-	    	// This is far from best solution, but it's ok for testing purposes
-	    	// More smart way is to use the IRQ pin :)
-	    	//
+    if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+      // Get a payload from the transceiver
 
+      pipe_nrf = nRF24_RX_EMPTY;
 
+      while (pipe_nrf == nRF24_RX_EMPTY) {
+        pipe_nrf = nRF24_ReadPayload(nRF24_payload, &payload_length);
+      }
+      UART_SendStr("\r\n");
+      UART_SendStr("RCV PIPE#");
+      UART_SendInt(pipe_nrf);
+      UART_SendStr("\r\n");
 
-	    	if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY)
-	    	{
-	    	// Get a payload from the transceiver
+      // Print a payload contents to UART
 
-	    		pipe_nrf=nRF24_RX_EMPTY;
-	    		
-	    		while (pipe_nrf==nRF24_RX_EMPTY)
-	    		{
-	    			pipe_nrf = nRF24_ReadPayload(nRF24_payload, &payload_length);
-	    		}
-	    		UART_SendStr("\r\n");
-	    		UART_SendStr("RCV PIPE#");
-	    		UART_SendInt(pipe_nrf);
-	    		UART_SendStr("\r\n");
-	    	
+      UART_SendStr(" PAYLOAD:>");
+      UART_SendStr(nRF24_payload);
+      UART_SendStr("<\r\n");
 
-	    		// Print a payload contents to UART
-
-	    		UART_SendStr(" PAYLOAD:>");
-	    		UART_SendStr(nRF24_payload);
-	    		UART_SendStr("<\r\n");
-
-
-
-	    		nRF24_ClearIRQFlags();
-
-	    	}
-	    }
-
+      nRF24_ClearIRQFlags();
+    }
+  }
 }
-
 
 void TX_single(void)
 {
