@@ -250,7 +250,6 @@ void nRF24_CSN_H() {
 }
 
 void RX_single(void)
-
 {
   // This is simple receiver with one RX pipe:
   //   - pipe#1 address: '0xE7 0x1C 0xE3'
@@ -356,6 +355,7 @@ void RX_single(void)
         UART_SendStr(mqtt_data);
         UART_SendStr("<\r\n");
       }
+    }
   }
 }
 
