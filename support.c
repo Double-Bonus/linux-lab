@@ -338,6 +338,18 @@ void RX_single(void)
 
       nRF24_ClearIRQFlags();
     }
+
+	// convert payload to double
+	double payload_double = atof(nRF24_payload);
+
+	// and print it to UART
+	UART_SendStr(" PAYLOAD DOUBLE:>");
+	UART_SendDouble(payload_double);
+	UART_SendStr("<\r\n");
+
+
+
+
   }
 }
 
