@@ -344,7 +344,7 @@ void RX_single(void)
 
 	// and print it to UART
 	UART_SendStr(" PAYLOAD DOUBLE:>");
-	UART_SendDouble(payload_double);
+	printf("%f", payload_double);
 	UART_SendStr("<\r\n");
 
 
