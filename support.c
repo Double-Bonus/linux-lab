@@ -306,6 +306,8 @@ void RX_single(void)
 
   UART_SendStr("STARTAS");
   nRF24_ClearIRQFlags();
+  
+  char mqtt_data[64];
 
   // The main loop
   while (1) {
@@ -338,20 +340,22 @@ void RX_single(void)
 
       nRF24_ClearIRQFlags();
 
+      // convert payload to double
+      double payload_double = atof(nRF24_payload);
 
-	// convert payload to double
-	double payload_double = atof(nRF24_payload);
+      // and print it to UART
+      UART_SendStr(" PAYLOAD DOUBLE:>");
+      printf("%f", payload_double);
+      UART_SendStr("<\r\n");
 
-	// and print it to UART
-	UART_SendStr(" PAYLOAD DOUBLE:>");
-	printf("%f", payload_double);
-	UART_SendStr("<\r\n");
-
-
-
-    }
-
-
+      // put payload in the buffer for mqtt
+      {
+        sprintf(mqtt_data, "field%d=%f", (int)pipe_nrf, payload_double);
+        // now print to console mqtt_data
+        UART_SendStr(" MQTT DATA:>");
+        UART_SendStr(mqtt_data);
+        UART_SendStr("<\r\n");
+      }
   }
 }
 
