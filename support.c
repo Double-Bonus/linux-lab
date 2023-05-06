@@ -10,6 +10,63 @@
 #include "nrf24.h"
 
 
+
+
+// TODO: good developer would move this to separate file
+//////////////////////////////////////////////////////////////////////////////
+
+#include "MQTTClient.h"
+#define ADDRESS		"mqtt3.thingspeak.com:1883"
+
+#define CLIENTID	"mwa0000018251941"
+#define TOPIC		"channels/2130012/publish"
+#define QOS			0
+#define TIMEOUT		20 * 10000L
+volatile MQTTClient_deliveryToken deliveredToken;
+
+
+#define SECRET_MQTT_USERNAME "HAMXHAY3CgQOBywcBSkFBjM"
+#define SECRET_MQTT_CLIENT_ID "HAMXHAY3CgQOBywcBSkFBjM"
+#define SECRET_MOTT_PASSWORD "zQjHmPsXQk5q1gMBTfknHgiU"
+
+// char payload_string [50]="field1=15.1&field2=10.5";
+char payload_string [50]="";
+
+int MQTT_publish (char *string) {
+	printf("\r\n");
+	printf("String will be published \r\n");
+	printf("%s", string);
+	printf("\r\n");
+	MQTTClient client;
+	MQTTClient_connectOptions opts = MQTTClient_connectOptions_initializer;
+	MQTTClient_message pubmsg =	MQTTClient_message_initializer;
+	MQTTClient_deliveryToken token;
+	MQTTClient_create (&client, ADDRESS, SECRET_MQTT_CLIENT_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	opts.keepAliveInterval = 20;
+	opts.cleansession= 1;
+	opts.username=SECRET_MQTT_CLIENT_ID;
+	opts.password=SECRET_MOTT_PASSWORD;
+
+	int rc;
+	if ((rc =MQTTClient_connect (client, &opts)) != MQTTCLIENT_SUCCESS) {
+		printf("Failed to connect, return code %d /r/n", rc);
+		return -1;
+	}
+
+	pubmsg.payload= string;
+	pubmsg.payloadlen = strlen(string);
+	pubmsg.qos = QOS;
+	pubmsg.retained = 0;
+	MQTTClient_publishMessage (client, TOPIC, &pubmsg, &token);
+	rc = MQTTClient_waitForCompletion (client, token, TIMEOUT);
+	printf("Message with token %d delivered \r\n", (int)token);
+	MQTTClient_disconnect (client, 10000);
+	MQTTClient_destroy (&client);
+	return rc;
+}
+//////////////////////////////////////////////////////////////////////////////
+
+
 // send buffer and receive buffer
 uint32_t data_to_send[10];
 uint32_t data_received[10];
@@ -250,7 +307,6 @@ void nRF24_CSN_H() {
 }
 
 void RX_single(void)
-
 {
   // This is simple receiver with one RX pipe:
   //   - pipe#1 address: '0xE7 0x1C 0xE3'
@@ -306,6 +362,8 @@ void RX_single(void)
 
   UART_SendStr("STARTAS");
   nRF24_ClearIRQFlags();
+  
+  char mqtt_data[64];
 
   // The main loop
   while (1) {
@@ -337,6 +395,26 @@ void RX_single(void)
       UART_SendStr("<\r\n");
 
       nRF24_ClearIRQFlags();
+
+      // convert payload to double
+      double payload_double = atof(nRF24_payload);
+
+      // and print it to UART
+      UART_SendStr(" PAYLOAD DOUBLE:>");
+      printf("%f", payload_double);
+      UART_SendStr("<\r\n");
+
+      // put payload in the buffer for mqtt
+      {
+        sprintf(mqtt_data, "field%d=%f", (int)pipe_nrf, payload_double);
+        // now print to console mqtt_data
+        UART_SendStr(" MQTT DATA:>");
+        UART_SendStr(mqtt_data);
+        UART_SendStr("<\r\n");
+
+		MQTT_publish(mqtt_data);
+
+      }
     }
   }
 }
